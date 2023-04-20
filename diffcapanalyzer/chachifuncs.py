@@ -33,8 +33,7 @@ def load_sep_cycles(core_file_name, database_name, datatype):
     return cycle_dict
 
 
-def get_clean_cycles(cycle_dict, core_file_name, database_name,
-                     datatype, windowlength=9, polyorder=3):
+def get_clean_cycles(cycle_dict, datatype, windowlength, polyorder):
     """Imports all separated out cycles in given path and cleans them
     and saves them in the database"""
 
@@ -42,19 +41,16 @@ def get_clean_cycles(cycle_dict, core_file_name, database_name,
      dis_cap_col, char_cap_col, charge_or_discharge) = col_variables(datatype)
 
     clean_cycle_dict = {}
-    for i in range(1, len(cycle_dict) + 1):
-        charge, discharge = clean_calc_sep_smooth(cycle_dict[i],
-                                                  datatype,
-                                                  windowlength,
-                                                  polyorder)
-        clean_data = charge.append(discharge, ignore_index=True)
+    for i in range(1, len(cycle_dict)):
+        charge, discharge = clean_calc_sep_smooth(cycle_dict[i], datatype, windowlength, polyorder)
+        clean_data = pd.concat([charge,discharge], ignore_index=True)
         clean_data = clean_data.sort_values([data_point_col],
                                             ascending=True)
         clean_data = clean_data.reset_index(drop=True)
-        cyclename = core_file_name + '-CleanCycle' + str(i)
+        cyclename = i
         clean_cycle_dict.update({cyclename: clean_data})
-        update_database_newtable(clean_data, cyclename,
-                                 database_name)
+        #update_database_newtable(clean_data, cyclename,
+        #                         database_name)
     return clean_cycle_dict
 
 
@@ -64,7 +60,7 @@ def get_clean_sets(clean_cycle_dict, core_file_name, database_name):
 
     clean_set_df = pd.DataFrame()
     for k, v in clean_cycle_dict.items():
-        clean_set_df = clean_set_df.append(v, ignore_index=True)
+        clean_set_df = pd.conat([clean_set_df,v], ignore_index=True)
     update_database_newtable(clean_set_df,
                              core_file_name + 'CleanSet',
                              database_name)
@@ -138,16 +134,22 @@ def calc_dq_dqdv(cycle_df, datatype):
             charge_or_discharge])
     cycle_df = cycle_df.reset_index(drop=True)
     cycle_df['dV'] = cycle_df[volt_col].diff()
-
-    cycle_df_charge = cycle_df[cycle_df[curr_col] > 0]
+    
+    if datatype == 'MACCOR':
+        cycle_df_charge = cycle_df[cycle_df[charge_or_discharge] == 'C']
+    else:
+        cycle_df_charge = cycle_df[cycle_df[curr_col] > 0]
     cycle_df_charge['Charge_dQ'] = cycle_df_charge[char_cap_col].diff()
     cycle_df_charge['dQ/dV'] = cycle_df_charge['Charge_dQ'] / \
         cycle_df_charge['dV']
     cycle_df_charge[['dQ/dV', 'dV', 'Charge_dQ']
                     ] = cycle_df_charge[['dQ/dV', 'dV', 'Charge_dQ']].fillna(0)
     cycle_df_charge = cycle_df_charge[cycle_df_charge['dQ/dV'] >= 0]
-
-    cycle_df_discharge = cycle_df[cycle_df[curr_col] <= 0]
+    
+    if datatype == 'MACCOR':
+        cycle_df_discharge = cycle_df[cycle_df[charge_or_discharge] == 'D']
+    else:
+        cycle_df_discharge = cycle_df[cycle_df[curr_col] <= 0]
     cycle_df_discharge['Discharge_dQ'] = cycle_df_discharge[dis_cap_col].diff()
     cycle_df_discharge['dQ/dV'] = cycle_df_discharge['Discharge_dQ'] / \
         cycle_df_discharge['dV']
@@ -257,12 +259,12 @@ def col_variables(datatype):
         charge_or_discharge = 'Step_Index'
 
     elif datatype == 'MACCOR':
-        cycle_ind_col = 'Cycle_Index'
+        cycle_ind_col = 'Cycle P'
         data_point_col = 'Rec'
-        volt_col = 'Voltage(V)'
-        curr_col = 'Current(A)'
-        dis_cap_col = 'Cap(Ah)'
-        char_cap_col = 'Cap(Ah)'
+        volt_col = 'Voltage [V]'
+        curr_col = 'Current [A]'
+        dis_cap_col = 'Cap. [Ah]'
+        char_cap_col = 'Cap. [Ah]'
         charge_or_discharge = 'Md'
     else:
         return None
