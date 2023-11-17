@@ -248,7 +248,7 @@ def col_variables(datatype):
     """This function provides a key for column names of the two
     most widely used battery data collection instruments, Arbin and
     MACCOR"""
-    assert datatype == 'ARBIN' or datatype == 'MACCOR' or datatype == 'MACCOR1' or datatype == 'NEWARE'
+    assert datatype == 'ARBIN' or datatype == 'MACCOR' or datatype == 'MACCOR1' or datatype == 'NEWARE' or datatype == 'GAMRY'
     if datatype == 'ARBIN':
         cycle_ind_col = 'Cycle_Index'
         data_point_col = 'Data_Point'
@@ -278,6 +278,14 @@ def col_variables(datatype):
         data_point_col = 'DataPoint'
         volt_col = 'Voltage(V)'
         curr_col = 'Current(A)'
+        dis_cap_col = 'Capacity(Ah)'
+        char_cap_col = 'Capacity(Ah)'
+        charge_or_discharge = 'Step Type'
+    elif datatype == 'GAMRY':
+        cycle_ind_col = 'CycleIndex'
+        data_point_col = 'Pt_[#]'
+        volt_col = 'Vf_[V]'
+        curr_col = 'Im_[A]'
         dis_cap_col = 'Capacity(Ah)'
         char_cap_col = 'Capacity(Ah)'
         charge_or_discharge = 'Step Type'
